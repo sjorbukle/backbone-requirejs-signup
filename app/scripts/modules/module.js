@@ -6,7 +6,8 @@ define(function(require, exports, module) {
     var Backbone = require('backbone');
     var JST = require('templates');
     var app = require('app');
-
+    var parsley = require('parsley');
+    var parsley_remote = require('parsley_remote');
 	var Module = app.module();
 
     /**
@@ -14,7 +15,26 @@ define(function(require, exports, module) {
      *
      * @return {Object} extended Backbone A-spot model
      */
-	Module.Models.Default = Backbone.Model.extend({});
+	Module.Models.Default = Backbone.Model.extend({
+
+        registrate: function(data, onSuccess) {
+
+            var self = this;
+            $.ajax({
+                url: "http://localhost:8080/customer/create/",
+                type: "POST",
+                contentType: "application/json",
+                processData: false,
+                data: data,
+                success: onSuccess,
+                error: function(){
+
+                    console.log("error logging in");
+                }
+
+            });
+        }
+    });
 
 
 
@@ -39,20 +59,49 @@ define(function(require, exports, module) {
 
 		model: new Module.Models.Default(),
 
+        events: {
+            'click #register': "validate"
+        },
+
 		initialize: function() {
 			var self = this;
 
-			self.model.set('moduleDataKey', 'moduleDataValue');
 
 			self.render();
 		},
 
 		render: function() {
 			var self = this;
-			var html = self.template(self.model.toJSON());
+			var html = self.template();
 
 			self.$el.html(html);
-		}
+		},
+
+        validate: function(){
+
+            var form = this.$el.find('#registrationForm');
+            var formParsley = form.parsley({
+                errorsWrapper: '<div class="parsley-errors-list"></div>',
+                errorTemplate: '<div class="alert alert-danger"></div>',
+                errorsContainer: function (ParsleyField) {
+                    return ParsleyField.$element.parent().parent();
+                },
+                classHandler: function (ParsleyField) {
+                    return ParsleyField.$element.parent();
+                }
+            });
+            var self = this;
+            formParsley.asyncValidate().done(function () {
+
+                var data = JSON.stringify({
+                    "username" : form.find('#username').val(),
+                    "email" : form.find('#email').val(),
+                    "password_hash" : form.find('#passwordPrimary').val()
+                });
+
+                self.model.registrate(data);
+            });
+        }
 	});
 
 
