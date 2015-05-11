@@ -67,6 +67,9 @@ define(function(require, exports, module) {
 			var self = this;
 
 
+            _.bindAll(this, "showConfirmationMessage");
+
+
 			self.render();
 		},
 
@@ -75,10 +78,17 @@ define(function(require, exports, module) {
 			var html = self.template();
 
 			self.$el.html(html);
+
+            $('form').parsley()
+                .addAsyncValidator('mycustom', function (xhr) {
+
+
+                    return "true" === xhr.responseText;
+                });
 		},
 
         validate: function(){
-
+            console.log('validating');
             var form = this.$el.find('#registrationForm');
             var formParsley = form.parsley({
                 errorsWrapper: '<div class="parsley-errors-list"></div>',
@@ -93,17 +103,24 @@ define(function(require, exports, module) {
             var self = this;
             formParsley.asyncValidate().done(function () {
 
+                $('form').parsley().fields.forEach( function(field){
+                    field._remoteCache = {};
+                });
                 var data = JSON.stringify({
                     "username" : form.find('#username').val(),
                     "email" : form.find('#email').val(),
                     "password_hash" : form.find('#passwordPrimary').val()
                 });
 
-                self.model.registrate(data);
+                self.model.registrate(data, self.showConfirmationMessage);
             });
+        },
+
+        showConfirmationMessage: function(){
+
+            this.$el.find('.text-center').css("display", "block");
         }
 	});
-
 
 	// *************************************************************************
 	// initialize the module - gets called by app.js
